@@ -39,20 +39,22 @@ class TidioClient:
         self._sio.emit("visitorNewMessage", body.model_dump())
 
     def __enter__(self):
-        
         self._sio.connect(
             self._socket_url,
             socketio_path="/socket.io",
             transports=["websocket"],
             headers={
             "Origin": self.LOCAL_URL,
-            "User-Agent": "Python SocketIO client",
-            },
-            wait_timeout=1
+        "User-Agent": "Python SocketIO client",
+        },        
         )
+        
         print("…waiting for server to register visitor…")
-        self._ready.wait()
+        if not self._ready.wait(timeout=10):
+            self._sio.disconnect()
+            raise TimeoutError("Failed to connect to Tidio server")
         return self
+    
         
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._sio.disconnect()
