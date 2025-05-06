@@ -54,15 +54,9 @@ class TidioClient:
     def disconnect(self):
         self.sio.disconnect()
 
-    def wait(self):
-        self.sio.wait()
-
-    # private methods
     def _register_event_handlers(self):
         @self.sio.event
-        def connect():
-#            print("🚀 Connected, sid =", self.sio.sid)
-            
+        def connect():            
             payload = {
                 "id":                self.visitor_id,
                 "originalVisitorId": self.visitor_id,
@@ -82,33 +76,17 @@ class TidioClient:
 
             def register_ack(success: bool, *extra):
                 if success:
-#                    print("✅ visitorRegister acknowledged")
                     self.ready.set()
                 else:
-#                    print("❌ visitorRegister failed:", extra)
-                    pass
+                   raise RuntimeError("❌ visitorRegister failed:", extra)
             
             self.sio.emit("visitorRegister", payload, callback=register_ack)
-#            print("➡️  visitorRegister sent")
-
-        @self.sio.on("connected")
-        def on_connected():
-#            print("⬅️  connected sent")
-            pass
 
         @self.sio.on("newMessage")
         def on_new_message(payload):
             message_txt = payload["data"]["message"]["message"]
             if message_txt:
                 print("Server message:", message_txt)
-            last_id = payload["data"]["id"]
-            self.sio.emit("visitorReadMessages", {
-                "lastReadMessageId": last_id,
-                "lastReadMessageTime": datetime.now(timezone.utc).isoformat() + "Z",
-                "visitorId": self.visitor_id,
-                "projectPublicKey": self.api_key,
-                "device": self.device,
-            })
     
 
         
