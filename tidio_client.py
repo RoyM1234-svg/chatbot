@@ -2,7 +2,6 @@ import socketio
 import uuid
 import platform
 from urllib.parse import urlencode
-from datetime import datetime, timezone
 import threading
 
 
@@ -42,7 +41,7 @@ class TidioClient:
             "projectPublicKey": self.api_key,
             "visitorId": self.visitor_id,
             "url": "http://localhost:8000/",
-            
+        
         }
 
         def visitor_new_message_ack(*resp):
@@ -78,7 +77,7 @@ class TidioClient:
                 if success:
                     self.ready.set()
                 else:
-                   raise RuntimeError("❌ visitorRegister failed:", extra)
+                   raise RuntimeError("visitorRegister failed:", extra)
             
             self.sio.emit("visitorRegister", payload, callback=register_ack)
 
