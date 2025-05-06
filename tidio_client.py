@@ -56,6 +56,25 @@ class TidioClient:
         @self.sio.event
         def connect():
             print("🚀 Connected, sid =", self.sio.sid)
+            
+            payload = {
+                "id":                self.visitor_id,
+                "originalVisitorId": self.visitor_id,
+                "name":              "roy@mail.com",
+                "email":             "roy@mail.com",
+                "project_public_key": self.api_key,
+                "browser":           "Python-socketio",
+                "browser_version":   platform.python_version(),
+                "lang":              "en-us",
+                "url":               "http://localhost:8000/",
+                "os_name":           platform.system(),
+                "screen_width":      1920,
+                "screen_height":     1080,
+                "timezone":          "Asia/Jerusalem",
+                "mobile":            False,
+            }
+            self.sio.emit("visitorRegister", payload)
+            print("➡️  visitorRegister sent")
 
         @self.sio.on("connected")
         def on_connected():
