@@ -3,6 +3,7 @@ import uuid
 import platform
 from urllib.parse import urlencode
 from datetime import datetime, timezone
+import threading
 
 
 class TidioClient:
@@ -15,6 +16,7 @@ class TidioClient:
         self.sio = socketio.Client(logger=self.debug, engineio_logger=self.debug)
         qs = urlencode({"ppk": self.api_key, "device": self.device, "cmv": self.cmv})
         self.socket_url = f"https://socket.tidio.co/socket.io/?{qs}"
+        self.ready = threading.Event()
 
         self._register_event_handlers()
 
@@ -30,6 +32,9 @@ class TidioClient:
         )
 
     def send_message(self, message: str):
+        if not self.ready.is_set():
+            raise RuntimeError("TidioClient is not registered; wait for the \"connected\" event.")
+        
         body = {
             "device": self.device,
             "message": message,
@@ -40,10 +45,11 @@ class TidioClient:
             
         }
 
-        def ack(*resp):
-            print("visitorNewMessage ACK →", resp)
+        def visitor_new_message_ack(*resp):
+#            print("visitorNewMessage ACK →", resp)
+            pass
 
-        self.sio.emit("visitorNewMessage", body, callback=ack)
+        self.sio.emit("visitorNewMessage", body, callback=visitor_new_message_ack)
 
     def disconnect(self):
         self.sio.disconnect()
@@ -55,7 +61,7 @@ class TidioClient:
     def _register_event_handlers(self):
         @self.sio.event
         def connect():
-            print("🚀 Connected, sid =", self.sio.sid)
+#            print("🚀 Connected, sid =", self.sio.sid)
             
             payload = {
                 "id":                self.visitor_id,
@@ -73,16 +79,28 @@ class TidioClient:
                 "timezone":          "Asia/Jerusalem",
                 "mobile":            False,
             }
-            self.sio.emit("visitorRegister", payload)
-            print("➡️  visitorRegister sent")
+
+            def register_ack(success: bool, *extra):
+                if success:
+#                    print("✅ visitorRegister acknowledged")
+                    self.ready.set()
+                else:
+#                    print("❌ visitorRegister failed:", extra)
+                    pass
+            
+            self.sio.emit("visitorRegister", payload, callback=register_ack)
+#            print("➡️  visitorRegister sent")
 
         @self.sio.on("connected")
         def on_connected():
-            print("➡️  connected sent")
+#            print("⬅️  connected sent")
+            pass
 
         @self.sio.on("newMessage")
         def on_new_message(payload):
-            print("Server message:", payload["data"]["message"]["message"])
+            message_txt = payload["data"]["message"]["message"]
+            if message_txt:
+                print("Server message:", message_txt)
             last_id = payload["data"]["id"]
             self.sio.emit("visitorReadMessages", {
                 "lastReadMessageId": last_id,
@@ -91,14 +109,6 @@ class TidioClient:
                 "projectPublicKey": self.api_key,
                 "device": self.device,
             })
-
-        @self.sio.on("*")
-        def _(event, *args):
-            if self.debug:
-                if args:
-                    print(f"⬅️  {event}: {args[0] if len(args) == 1 else args}")
-                else:
-                    print(f"⬅️  {event}")
     
 
         
