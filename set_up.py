@@ -12,4 +12,4 @@ async def serve_home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("set_up:app", host="0.0.0.0", port=8000, reload=True) 
